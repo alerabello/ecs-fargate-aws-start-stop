@@ -1,7 +1,6 @@
 import boto3
 import datetime
 import pytz
-import time
 
 def start_fargate_tasks(cluster_name, tag_key, tag_value):
     client = boto3.client('ecs')
@@ -65,50 +64,43 @@ def stop_fargate_tasks(cluster_name, tag_key, tag_value):
     else:
         print("No running tasks found.")
 
-def run_schedule(schedule, cluster_name, tag_key, tag_value):
-    print(f"Running schedule: {schedule['name']}")
-
-    tz = pytz.timezone(schedule['timezone'])
-
-    while True:
-        now = datetime.datetime.now(tz)
-        current_day = now.strftime("%A")
-        current_time = now.strftime("%H:%M")
-
+def run_schedule(event, context):
+    schedules = [
+        {
+            'name': 'Weekdays',
+            'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+            'time': '08:00',
+            'end_time': '17:00',
+            'timezone': 'America/New_York'
+        },
+        {
+            'name': 'Weekends',
+            'days': ['Saturday', 'Sunday'],
+            'time': '10:00',
+            'end_time': '18:00',
+            'timezone': 'America/New_York'
+        }
+    ]
+    
+    cluster_name = 'your_cluster_name'
+    tag_key = 'your_tag_key'
+    tag_value = 'your_tag_value'
+    
+    tz = pytz.timezone('America/New_York')
+    current_datetime = datetime.datetime.now(tz)
+    current_day = current_datetime.strftime("%A")
+    current_time = current_datetime.strftime("%H:%M")
+    
+    for schedule in schedules:
         if current_day in schedule['days'] and current_time == schedule['time']:
             print(f"Starting tasks for schedule: {schedule['name']}")
             start_fargate_tasks(cluster_name, tag_key, tag_value)
-            time.sleep(60)  # Aguarda 1 minuto para evitar múltiplas execuções
 
         if current_day in schedule['days'] and current_time == schedule['end_time']:
             print(f"Stopping tasks for schedule: {schedule['name']}")
             stop_fargate_tasks(cluster_name, tag_key, tag_value)
-            time.sleep(60)  # Aguarda 1 minuto para evitar múltiplas execuções
-
-        time.sleep(10)  # Verifica a cada 10 segundos
-
-# Exemplo de uso:
-schedules = [
-    {
-        'name': 'Weekdays',
-        'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        'time': '08:00',
-        'end_time': '17:00',
-        'timezone': 'America/New_York'
-    },
-    {
-        'name': 'Weekends',
-        'days': ['Saturday', 'Sunday'],
-        'time': '10:00',
-        'end_time': '18:00',
-        'timezone': 'America/New_York'
+    
+    return {
+        'statusCode': 200,
+        'body': 'Schedule executed successfully.'
     }
-]
-
-cluster_name = 'your_cluster_name'
-tag_key = 'your_tag_key'
-tag_value = 'your_tag_value'
-
-# Executa os agendamentos
-for schedule in schedules:
-    run_schedule(schedule, cluster_name, tag_key, tag_value)
