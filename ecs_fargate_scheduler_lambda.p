@@ -2,67 +2,63 @@ import boto3
 import datetime
 import pytz
 
-def start_fargate_tasks(cluster_name, tag_key, tag_value):
+def start_cluster(cluster_name, tag_key, tag_value):
     client = boto3.client('ecs')
     
-    response = client.list_tasks(
+    response = client.list_services(
         cluster=cluster_name,
         launchType='FARGATE',
         desiredStatus='STOPPED',
-        startedBy='EXTERNAL',
         tags={
             tag_key: tag_value
         }
     )
     
-    task_arns = response['taskArns']
+    service_arns = response['serviceArns']
     
-    if task_arns:
-        response = client.start_task(
+    if service_arns:
+        response = client.update_service(
             cluster=cluster_name,
-            taskDefinition='your_task_definition',
-            overrides={},
-            containerInstances=[],
-            startedBy='EXTERNAL',
+            service=service_arns[0],
+            desiredCount=1,
             tags={
                 tag_key: tag_value
             }
         )
         
-        task_arn = response['tasks'][0]['taskArn']
-        print(f"Started task: {task_arn}")
+        service_arn = response['service']['serviceArn']
+        print(f"Started service: {service_arn}")
     else:
-        print("No stopped tasks found.")
+        print("No stopped services found.")
 
-def stop_fargate_tasks(cluster_name, tag_key, tag_value):
+def stop_cluster(cluster_name, tag_key, tag_value):
     client = boto3.client('ecs')
     
-    response = client.list_tasks(
+    response = client.list_services(
         cluster=cluster_name,
         launchType='FARGATE',
-        desiredStatus='RUNNING',
-        startedBy='EXTERNAL',
+        desiredStatus='ACTIVE',
         tags={
             tag_key: tag_value
         }
     )
     
-    task_arns = response['taskArns']
+    service_arns = response['serviceArns']
     
-    if task_arns:
-        response = client.stop_task(
+    if service_arns:
+        response = client.update_service(
             cluster=cluster_name,
-            task=task_arns[0],
-            reason='Stopping task',
+            service=service_arns[0],
+            desiredCount=0,
             tags={
                 tag_key: tag_value
             }
         )
         
-        task_arn = response['task']['taskArn']
-        print(f"Stopped task: {task_arn}")
+        service_arn = response['service']['serviceArn']
+        print(f"Stopped service: {service_arn}")
     else:
-        print("No running tasks found.")
+        print("No active services found.")
 
 def run_schedule(event, context):
     schedules = [
@@ -86,19 +82,19 @@ def run_schedule(event, context):
     tag_key = 'your_tag_key'
     tag_value = 'your_tag_value'
     
-    tz = pytz.timezone('America/Sao_Paulo')
+    tz = pytz.timezone('America/New_York')
     current_datetime = datetime.datetime.now(tz)
     current_day = current_datetime.strftime("%A")
     current_time = current_datetime.strftime("%H:%M")
     
     for schedule in schedules:
         if current_day in schedule['days'] and current_time == schedule['time']:
-            print(f"Starting tasks for schedule: {schedule['name']}")
-            start_fargate_tasks(cluster_name, tag_key, tag_value)
+            print(f"Starting cluster and services for schedule: {schedule['name']}")
+            start_cluster(cluster_name, tag_key, tag_value)
 
         if current_day in schedule['days'] and current_time == schedule['end_time']:
-            print(f"Stopping tasks for schedule: {schedule['name']}")
-            stop_fargate_tasks(cluster_name, tag_key, tag_value)
+            print(f"Stopping cluster and services for schedule: {schedule['name']}")
+            stop_cluster(cluster_name, tag_key, tag_value)
     
     return {
         'statusCode': 200,
