@@ -86,7 +86,7 @@ def run_schedule(event, context):
     tag_key = 'your_tag_key'
     tag_value = 'your_tag_value'
     
-    tz = pytz.timezone('America/New_York')
+    tz = pytz.timezone('America/Sao_Paulo')
     current_datetime = datetime.datetime.now(tz)
     current_day = current_datetime.strftime("%A")
     current_time = current_datetime.strftime("%H:%M")
