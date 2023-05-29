@@ -38,4 +38,4 @@ Este script Python pode ser executado no AWS Lambda para ligar e desligar tarefa
 
 Observação: Verifique se as tags e o cluster estão configurados corretamente antes de executar o script. Certifique-se também de ter as permissões necessárias para acessar e modificar as tarefas e serviços do ECS Fargate em sua conta da AWS.
 
-### - Certifique-se de substituir 'your_cluster_name', 'your_tag_key' e 'your_tag_value' pelos valores apropriados para o seu caso de uso. -
+### -Certifique-se de substituir 'your_cluster_name', 'your_tag_key' e 'your_tag_value' pelos valores apropriados para o seu caso de uso. Além disso, personalize os agendamentos de acordo com suas necessidades na variável schedules.
