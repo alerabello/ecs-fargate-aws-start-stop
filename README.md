@@ -23,12 +23,20 @@ Este é um script em Python que pode ser executado no AWS Lambda para automatiza
 5. Para cada serviço que deseja controlar, adicione as seguintes tags:
 
 Chave: ScheduleStart
+
 Valor: Especifique os dias da semana em que o serviço deve ser iniciado, separados por vírgulas. Por exemplo: Monday,Tuesday,Wednesday.
+
 Chave: ScheduleStop
-Valor: Especifique os dias da semana em que o serviço deve ser interrompido, separados por vírgulas. Por exemplo: Thursday,Friday.
+
+Valor: Especifique os dias da semana em que o serviço deve ser interrompido, separados por 
+vírgulas. Por exemplo: Thursday,Friday.
+
 Chave: StartTime
+
 Valor: Especifique o horário de início no formato HH:MM. Por exemplo: 08:00.
+
 Chave: StopTime
+
 Valor: Especifique o horário de término no formato HH:MM. Por exemplo: 18:00.
 Crie uma função Lambda no Console de Gerenciamento da AWS:
 
