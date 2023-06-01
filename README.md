@@ -22,20 +22,18 @@
    - Para definir o período: Period-<period_number>, onde <period_number> é o número do período. 
    - O valor do período deve ser especificado como <start_time>-<end_time>, por exemplo, 08:00-17:00.
 ````
-```
-   -Exemplo: 
-         Scheduled       : Active
+-Exemplo: 
+      Scheduled       : Active
 
-         Period-1        : Monday-Friday
-         ScheduleStart-1 : 06:00
-         ScheduleStop-1  : 18:00
+      Period-1        : Monday-Friday
+      ScheduleStart-1 : 06:00
+      ScheduleStop-1  : 18:00
 
-         Period-2        : Saturday
-         ScheduleStart-2 : 09:00
+      Period-2        : Saturday
+      ScheduleStart-2 : 09:00
 
-         Period-3        : Sunday
-         ScheduleStop-3  : 02:00
-```
+      Period-3        : Sunday
+       ScheduleStop-3  : 02:00
 ````
 # Uso
 1. Execute o script Python executando o seguinte comando:
