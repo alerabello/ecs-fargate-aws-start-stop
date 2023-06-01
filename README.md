@@ -20,8 +20,7 @@
    - Para paralisação: ScheduleStop-<period_number>, onde <period_number> é o número do período.
    - Para início: ScheduleStart-<period_number>, onde <period_number> é o número do período.
    - Para definir o período: Period-<period_number>, onde <period_number> é o número do período. 
-   - O valor do período deve ser especificado como <start_time>-<end_time>, por exemplo, 08:00-17:00.
-   - Certifique-se de substituir a variável 'your_cluster_name' pelo nome do seu cluster ECS Fargate.
+   - O valor do período deve ser especificado como <start_time>-<end_time>, por exemplo, 08:00-17:00..
 ````
 -Exemplo: 
       Scheduled       : Active
