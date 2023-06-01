@@ -1,59 +1,99 @@
-import boto3
-import datetime
+current_time = datetime.now() - timedelta(hours=3)
+current_time_local = current_time.strftime("%H:%M")
+print(f'Current time: {current_time_local}')
 
-def start_service(cluster_name, service_name):
-    client = boto3.client('ecs')
-    response = client.update_service(
-        cluster=cluster_name,
-        service=service_name,
-        desiredCount=1
-    )
-    print(f"Started service: {service_name}")
+current_day = current_time.strftime("%A")
+print(f'Current day: {current_day}')
+	
+response = ecs.list_clusters()
+cluster_arns = response['clusterArns']
 
-def stop_service(cluster_name, service_name):
-    client = boto3.client('ecs')
-    response = client.update_service(
-        cluster=cluster_name,
-        service=service_name,
-        desiredCount=0
-    )
-    print(f"Stopped service: {service_name}")
+stop_tasks = []   
+start_tasks = []
 
-def lambda_handler(event, context):
-    cluster_name = 'your_cluster_name'  # Substitua pelo nome do seu cluster ECS Fargate
-    client = boto3.client('ecs')
+for cluster_arn in cluster_arns:
+    response = ecs.list_tasks(cluster=cluster_arn)
+    task_arns = response['taskArns']
     
-    response = client.list_services(
-        cluster=cluster_name
-    )
+    for task_arn in task_arns:
+        response = ecs.describe_tasks(cluster=cluster_arn, tasks=[task_arn])
+        task = response['tasks'][0]
+        task_definition_arn = task['taskDefinitionArn']
+        
+        response = ecs.describe_task_definition(taskDefinition=task_definition_arn)
+        task_definition = response['taskDefinition']
+        tags = task_definition['tags']
+        
+        period = []
+        i = 0
+        j = 0
+        
+        for tag in tags:
+            if 'Period' in tag['key']:
+                period.append(tag['key'].split('-')[1])
+                i = i+1
+            
+        while j < i:
+            for tag in tags:
+                # Get Period tag value
+                if tag['key'] == 'Period-' + str(period[j]):
+                    numPeriod = tag['value']       
+                    print(f'Period: {numPeriod}')
+                    day = numPeriod.split('-')
+                    print(f'Days: {day}')
     
-    service_arns = response['serviceArns']
+            for tag in tags:
+                # Add task in array to stop
+                if tag['key'] == 'ScheduleStop-' + str(period[j]):
+                    if len(day) > 1:
+                        # Check if the current day is within the period
+                        try:
+                            if DAYS.index(current_day, DAYS.index(day[0]), DAYS.index(day[1]) + 1):
+                                print(f'{current_day} is on Stop period-{period[j]}')
+                                if tag['value'] == current_time_local:
+                                    print(f'{task_arn} is on the time')
+                                    stop_tasks.append(task_arn)
+                        except ValueError:
+                            print(f'{current_day} is not on Stop period-{period[j]}')
+                    else:
+                        if current_day == day[0]:
+                            if tag['value'] == current_time_local:
+                                print(f'{task_arn} is on the time')
+                                stop_tasks.append(task_arn)
+            
+            for tag in tags:
+                # Add task in array to start
+                if tag['key'] == 'ScheduleStart-' + str(period[j]):
+                    if len(day) > 1:
+                        # Check if the current day is within the period
+                        try:
+                            if DAYS.index(current_day, DAYS.index(day[0]), DAYS.index(day[1]) + 1):
+                                print(f'{current_day} is on Start period-{period[j]}')
+                                if tag['value'] == current_time_local:
+                                    print(f'{task_arn} is on the time')
+                                    start_tasks.append(task_arn)
+                        except ValueError:
+                            print(f'{current_day} is not on Start period-{period[j]}')
+                    else:
+                        if current_day == day[0]:
+                            if tag['value'] == current_time_local:
+                                print(f'{task_arn} is on the time')
+                                start_tasks.append(task_arn)
+            
+            j = j+1
+        
+# Stop all tasks tagged to stop.
+if len(stop_tasks) > 0:
+    for stop_task in stop_tasks:
+        response = ecs.stop_task(cluster=cluster_arn, task=stop_task)
+        print(f'Stopping task: {stop_task}')
+else:
+    print("No tasks to stop.")
     
-    for service_arn in service_arns:
-        service_name = service_arn.split('/')[1]
-        
-        response = client.describe_services(
-            cluster=cluster_name,
-            services=[service_arn]
-        )
-        
-        service_tags = response['services'][0].get('tags', {})
-        
-        schedule_start = service_tags.get('ScheduleStart', '')
-        schedule_stop = service_tags.get('ScheduleStop', '')
-        start_time = service_tags.get('StartTime', '')
-        stop_time = service_tags.get('StopTime', '')
-        
-        current_day = datetime.datetime.now().strftime('%A')
-        current_time = datetime.datetime.now().strftime('%H:%M')
-        
-        if current_day in schedule_start and current_time == start_time:
-            start_service(cluster_name, service_name)
-        
-        if current_day in schedule_stop and current_time == stop_time:
-            stop_service(cluster_name, service_name)
-    
-    return {
-        'statusCode': 200,
-        'body': 'Scheduled start/stop executed successfully.'
-    }
+# Start tasks tagged to start. 
+if len(start_tasks) > 0:
+    for start_task in start_tasks:
+        response = ecs.start_task(cluster=cluster_arn, taskDefinition=task_definition_arn)
+        print(f'Starting task: {start_task}')
+else:
+    print("No tasks to start.")
