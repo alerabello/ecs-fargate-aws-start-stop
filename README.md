@@ -19,8 +19,22 @@
 6. Configure as tags nas definições das tarefas do ECS para definir os períodos de paralisação e início. Por exemplo:
    - Para paralisação: ScheduleStop-<period_number>, onde <period_number> é o número do período.
    - Para início: ScheduleStart-<period_number>, onde <period_number> é o número do período.
-   - Para definir o período: Period-<period_number>, onde <period_number> é o número do período. O valor do período deve ser especificado como <start_time>-<end_time>, por exemplo, 08:00-17:00.
+   - Para definir o período: Period-<period_number>, onde <period_number> é o número do período. 
+   - O valor do período deve ser especificado como <start_time>-<end_time>, por exemplo, 08:00-17:00.
+   <picture>
+   -Exemplo: 
+         Scheduled       : Active
 
+         Period-1        : Monday-Friday
+         ScheduleStart-1 : 06:00
+         ScheduleStop-1  : 18:00
+
+         Period-2        : Saturday
+         ScheduleStart-2 : 09:00
+
+         Period-3        : Sunday
+         ScheduleStop-3  : 02:00
+   </picture>
 # Uso
 1. Execute o script Python executando o seguinte comando:
       - python ecs_task_scheduler.py
@@ -31,7 +45,7 @@
 1. O script considera apenas tarefas individuais no cluster ECS. Tarefas em serviços, tarefas em execução por serviços do ECS ou tarefas em execução em instâncias EC2 não são suportadas.
 2. Certifique-se de que o script esteja em execução continuamente ou agendado para ser executado nos horários desejados.
 
-# Considerações Finais
+#Considerações Finais
 Este script fornece uma maneira simples de agendar a inicialização e paralisação de tarefas no ECS com base em tags configuradas. Certifique-se de revisar e personalizar o código de acordo com suas necessidades específicas antes de executá-lo em um ambiente de produção.
 
 Lembre-se de que a responsabilidade por agendar e gerenciar as tarefas do ECS recai sobre o usuário, e este script é apenas uma ferramenta para auxiliar nesse processo.
