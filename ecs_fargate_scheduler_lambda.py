@@ -41,80 +41,40 @@ def lambda_handler(event, context):
             tags_response = ecs.list_tags_for_resource(resourceArn=task_definition)
             tags = tags_response['tags']
             
-            period = []
-            i = 0
-            j = 0
-
-            for tag in tags:
-                if 'Period' in tag['key']:
-                    period.append(tag['key'].split('-')[1])
-                    i = i+1
+            periods = []
+            
+            for key in tags:
+                if key.startswith('Period-'):
+                    periods.append(key.split('-')[1])
+            
+            for period in periods:
+                schedule_start = tags.get(f'ScheduleStart-{period}', '')
+                schedule_stop = tags.get(f'ScheduleStop-{period}', '')
                 
-            while j < i:
-                for tag in tags:
-                    # Get Period tag value
-                    if tag['key'] == 'Period-' + str(period[j]):
-                        numPeriod = tag['value']
-                        print(f'Period: {numPeriod}')
-                        day = numPeriod.split('-')
-                        print(f'Days: {day}')
-
-                for tag in tags:
-                    # Add task in array to stop
-                    if tag['key'] == 'ScheduleStop-' + str(period[j]):
-                        if len(day) > 1:
-                            # Check if the current day is within the period
-                            try:
-                                if DAYS.index(current_day, DAYS.index(day[0]), DAYS.index(day[1]) + 1):
-                                    print(f'{current_day} is on Stop period-{period[j]}')
-                                    
-                                    if tag['value'] == current_time_local:
-                                        print(f'{task_definition} is on the time')
-                                        stop_tasks.append(task)
-                                        
-                            except ValueError:
-                                print(f'{current_day} is not on Stop period-{period[j]}')
-                        else:
-                            if current_day == day[0]:
-                                if tag['value'] == current_time_local:
-                                    print(f'{task_definition} is on the time')
-                                    stop_tasks.append(task)
-            
-                for tag in tags:
-                    # Add task in array to start
-                    if tag['key'] == 'ScheduleStart-' + str(period[j]):
-                        if len(day) > 1:
-                            # Check if the current day is within the period
-                            try:
-                                if DAYS.index(current_day, DAYS.index(day[0]), DAYS.index(day[1]) + 1):
-                                    print(f'{current_day} is on Start period-{period[j]}')
-                                    
-                                    if tag['value'] == current_time_local:
-                                        print(f'{task_definition} is on the time')
-                                        start_tasks.append(task)
-                                            
-                            except ValueError:
-                                print(f'{current_day} is not on Start period-{period[j]}')
-                        else:
-                            if current_day == day[0]:
-                                if tag['value'] == current_time_local:
-                                    print(f'{task_definition} is on the time')
-                                    start_tasks.append(task)
-            
-                j = j+1
+                if current_day == 'Monday' or current_day == 'Tuesday' or current_day == 'Wednesday' or current_day == 'Thursday' or current_day == 'Friday':
+                    if current_time_local == schedule_start:
+                        start_tasks.append(task)
+                    elif current_time_local == schedule_stop:
+                        stop_tasks.append(task)
+                elif current_day == 'Saturday':
+                    if period == '2' and current_time_local == schedule_start:
+                        start_tasks.append(task)
+                elif current_day == 'Sunday':
+                    if period == '3' and current_time_local == schedule_stop:
+                        stop_tasks.append(task)
             
     # Stop all tasks tagged to stop.
     if len(stop_tasks) > 0:
-        for stop_task in stop_tasks:
-            response = ecs.stop_task(cluster=cluster, task=stop_task)
-            print(f'Stopping task: {stop_task}')
+        for task in stop_tasks:
+            response = ecs.stop_task(cluster=cluster, task=task)
+            print(f'Stopping task: {task}')
     else:
         print("No tasks to stop.")
         
     # Start tasks tagged to start. 
     if len(start_tasks) > 0:
-        for start_task in start_tasks:
-            response = ecs.start_task(cluster=cluster, task=start_task)
-            print(f'Starting task: {start_task}')
+        for task in start_tasks:
+            response = ecs.start_task(cluster=cluster, task=task)
+            print(f'Starting task: {task}')
     else:
         print("No tasks to start.")
