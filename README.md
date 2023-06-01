@@ -1,41 +1,48 @@
-# Script Python para ligar e desligar serviços do Amazon ECS Fargate através de tags com base em dias e horários - AWS Lambda
+# Automatização de Start/Stop de serviços ECS Fargate no AWS Lambda
 
-Este script Python pode ser executado no AWS Lambda para ligar e desligar serviços do Amazon ECS Fargate com base em tags, considerando diferentes dias e horários. Ele usa a biblioteca boto3 para se comunicar com a AWS e executar as operações no ECS.
+Este é um script em Python que pode ser executado no AWS Lambda para automatizar as operações de start e stop em serviços do ECS Fargate com base em tags definidas nos serviços.
 
 ## Requisitos
 
-- Uma conta da AWS configurada com permissões para executar operações no Amazon ECS
-- Configuração de função e política adequadas para o AWS Lambda
-- Python 3.x
+- Pré-requisitos:
+
+- Uma conta na AWS com acesso ao serviço ECS e permissões para criar e executar funções Lambda.
+- Um cluster ECS Fargate configurado com os serviços que deseja controlar.
+- Tags corretamente configuradas nos serviços do ECS Fargate, conforme descrito abaixo.
 
 ## Configuração
 
-1. Crie uma função Lambda na AWS e atribua uma política que forneça as permissões necessárias para acessar e modificar os serviços do Amazon ECS. Para obter mais informações, consulte a documentação oficial da AWS sobre como criar funções Lambda e atribuir políticas.
+1. Passos para configurar a rotina de start/stop:
 
-2. Faça o upload do código do script Python (`ecs_fargate_scheduler_lambda.py`) para a função Lambda. Você pode fazer isso por meio da interface da AWS ou usando a AWS CLI.
+2. Abra o Console de Gerenciamento da AWS e acesse o serviço ECS (Amazon Elastic Container Service).
 
-3. Edite o arquivo `ecs_fargate_scheduler_lambda.py` e substitua os seguintes valores:
+3. Crie um cluster ECS Fargate, caso ainda não tenha um. Siga as instruções fornecidas na documentação oficial da AWS para criar um cluster ECS Fargate.
 
-   - `your_cluster_name`: Substitua pelo nome do seu cluster ECS Fargate.
+4. Crie ou selecione os serviços ECS Fargate que deseja controlar com a rotina de start/stop. Certifique-se de que os serviços estejam associados ao cluster ECS Fargate.
 
-4. Defina os agendamentos no script, na variável `schedules`. Cada agendamento é definido como um dicionário contendo as seguintes informações:
-   
-   - `name`: Nome do agendamento.
-   - `days`: Uma lista de dias da semana em que o agendamento deve ser aplicado.
-   - `time`: Horário de início em que os serviços serão iniciados (no formato 'HH:MM').
-   - `end_time`: Horário de término em que os serviços serão interrompidos (no formato 'HH:MM').
-   - `timezone`: Fuso horário em que o agendamento será aplicado (por exemplo, 'America/New_York').
+5. Para cada serviço que deseja controlar, adicione as seguintes tags:
 
-5. Certifique-se de que as tags `schedule` estejam atribuídas corretamente aos serviços que deseja controlar. Por exemplo, você pode adicionar uma tag com a chave `schedule` e o valor correspondente ao nome do agendamento que deseja aplicar.
+Chave: ScheduleStart
+Valor: Especifique os dias da semana em que o serviço deve ser iniciado, separados por vírgulas. Por exemplo: Monday,Tuesday,Wednesday.
+Chave: ScheduleStop
+Valor: Especifique os dias da semana em que o serviço deve ser interrompido, separados por vírgulas. Por exemplo: Thursday,Friday.
+Chave: StartTime
+Valor: Especifique o horário de início no formato HH:MM. Por exemplo: 08:00.
+Chave: StopTime
+Valor: Especifique o horário de término no formato HH:MM. Por exemplo: 18:00.
+Crie uma função Lambda no Console de Gerenciamento da AWS:
 
-## Executando as Rotinas
+6. Selecione a linguagem de programação Python e escolha um nome para a função Lambda.
+7. Cole o código fornecido neste repositório na função Lambda.
+8. Configure as permissões adequadas para a função Lambda, garantindo que ela tenha acesso ao cluster ECS Fargate e permissões para modificar os serviços. Recomenda-se criar uma função de execução do IAM com as permissões necessárias e associá-la à função Lambda.
+9. Crie um evento no CloudWatch para acionar a função Lambda de acordo com o cronograma desejado:
 
-1. Configure um evento de agendamento para a função Lambda no AWS CloudWatch Events. O evento de agendamento deve ser definido para acionar a função Lambda em intervalos regulares, de acordo com a frequência desejada (por exemplo, a cada minuto, hora ou dia).
+10. No Console de Gerenciamento da AWS, acesse o serviço CloudWatch.
+11. Crie uma regra de evento para acionar a função Lambda com base no cronograma desejado. Por exemplo, a cada hora ou de acordo com um cronograma específico.
+12. Após configurar a função Lambda e o evento no CloudWatch, a rotina de start/stop será executada automaticamente com base nas tags e no cronograma definidos nos serviços do ECS Fargate.
 
-2. Salve as configurações e aguarde o acionamento do evento de agendamento. A função Lambda executará as rotinas de ligar e desligar os serviços do Amazon ECS Fargate com base nos agendamentos definidos.
+13. Certifique-se de que o código foi atualizado com o nome correto do seu cluster ECS Fargate, substituindo 'your_cluster_name' pelo nome correto.
 
-3. Os logs da função Lambda podem ser visualizados no Console de Gerenciamento da AWS ou por meio da AWS CLI.
+14. Observação: Este script considera o uso do AWS SDK para Python (boto3) e assume que você já configurou as credenciais adequadas no ambiente onde a função Lambda será executada.
 
-Observação: Certifique-se de que as tags e o cluster estejam configurados corretamente antes de executar o script. Certifique-se também de ter as permissões necessárias para acessar e modificar os serviços do ECS Fargate em sua conta da AWS.
-
-Lembre-se de substituir 'your_cluster_name' pelo nome correto do seu cluster ECS Fargate. Além disso, certifique-se de que as tags schedule estejam atribuídas corretamente aos serviços que deseja controlar.
+15. Espero que este guia seja útil para configurar a rotina de start/stop automatizada para serviços ECS Fargate no AWS Lambda!
