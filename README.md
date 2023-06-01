@@ -21,7 +21,8 @@
    - Para início: ScheduleStart-<period_number>, onde <period_number> é o número do período.
    - Para definir o período: Period-<period_number>, onde <period_number> é o número do período. 
    - O valor do período deve ser especificado como <start_time>-<end_time>, por exemplo, 08:00-17:00.
-   <picture>
+````
+```
    -Exemplo: 
          Scheduled       : Active
 
@@ -34,7 +35,8 @@
 
          Period-3        : Sunday
          ScheduleStop-3  : 02:00
-   </picture>
+```
+````
 # Uso
 1. Execute o script Python executando o seguinte comando:
       - python ecs_task_scheduler.py
