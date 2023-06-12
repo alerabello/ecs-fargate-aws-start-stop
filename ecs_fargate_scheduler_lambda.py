@@ -1,120 +1,111 @@
 import boto3
-import time
-from datetime import datetime, timedelta
-
-# Define Fargate client connection
-ecs = boto3.client('ecs')
-
-DAYS = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday'
-]
+from datetime import datetime, time
 
 def lambda_handler(event, context):
-
-    current_time = datetime.now() - timedelta(hours=3)
-    current_time_local = current_time.strftime("%H:%M")
-    print(f'Current time: {current_time_local}')
+    current_time = datetime.now().time()
     
-    current_day = current_time.strftime("%A")
-    print(f'Current day: {current_day}')
-    	
-    response = ecs.list_clusters()
+    # Verifique se está dentro do horário desejado
+    if is_schedule_matched(event, current_time):
+        # Verifique o tipo de evento
+        if event['action'] == 'start':
+            # Inicie as tarefas do Fargate
+            start_fargate_tasks(event['start_tags'])
+        elif event['action'] == 'stop':
+            # Pare as tarefas do Fargate
+            stop_fargate_tasks(event['stop_tags'])
+        else:
+            # Ação desconhecida
+            raise Exception('Ação inválida')
+    else:
+        print('Fora do horário de execução')
+
+def start_fargate_tasks(tags):
+    # Configuração do cliente ECS
+    ecs_client = boto3.client('ecs')
+    
+    # Obtenha os clusters e serviços do ECS com as tags fornecidas
+    clusters, services = get_clusters_and_services_with_tags(tags)
+    
+    # Iniciar tarefas do Fargate para cada cluster e serviço
+    for cluster in clusters:
+        for service in services[cluster]:
+            response = ecs_client.update_service(
+                cluster=cluster,
+                service=service,
+                desiredCount=1  # Defina o número desejado de tarefas
+            )
+            
+            # Verifique o resultado
+            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                print(f'Tarefas do Fargate iniciadas com sucesso para o cluster {cluster} e serviço {service}')
+            else:
+                print(f'Falha ao iniciar as tarefas do Fargate para o cluster {cluster} e serviço {service}')
+
+def stop_fargate_tasks(tags):
+    # Configuração do cliente ECS
+    ecs_client = boto3.client('ecs')
+    
+    # Obtenha os clusters e serviços do ECS com as tags fornecidas
+    clusters, services = get_clusters_and_services_with_tags(tags)
+    
+    # Parar tarefas do Fargate para cada cluster e serviço
+    for cluster in clusters:
+        for service in services[cluster]:
+            response = ecs_client.update_service(
+                cluster=cluster,
+                service=service,
+                desiredCount=0  # Defina o número desejado de tarefas como 0 para parar todas as tarefas
+            )
+            
+            # Verifique o resultado
+            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                print(f'Tarefas do Fargate paradas com sucesso para o cluster {cluster} e serviço {service}')
+            else:
+                print(f'Falha ao parar as tarefas do Fargate para o cluster {cluster} e serviço {service}')
+
+def get_clusters_and_services_with_tags(tags):
+    # Configuração do cliente ECS
+    ecs_client = boto3.client('ecs')
+    
+    # Obter informações sobre clusters e serviços com as tags fornecidas
+    response = ecs_client.list_clusters()
     clusters = response['clusterArns']
     
-    stop_tasks = []   
-    start_tasks = []
-
+    services = {}
+    
+    # Para cada cluster, obtenha os serviços com as tags fornecidas
     for cluster in clusters:
-        response = ecs.list_tasks(cluster=cluster)
-        tasks = response['taskArns']
+        response = ecs_client.list_services(cluster=cluster)
+        service_arns = response['serviceArns']
         
-        for task in tasks:
-            task_details = ecs.describe_tasks(cluster=cluster, tasks=[task])
-            task_definition = task_details['tasks'][0]['taskDefinitionArn']
-            
-            tags_response = ecs.list_tags_for_resource(resourceArn=task_definition)
-            tags = tags_response['tags']
-            
-            period = []
-            i = 0
-            j = 0
-
-            for tag in tags:
-                if 'Period' in tag['key']:
-                    period.append(tag['key'].split('-')[1])
-                    i = i+1
-                
-            while j < i:
-                for tag in tags:
-                    # Get Period tag value
-                    if tag['key'] == 'Period-' + str(period[j]):
-                        numPeriod = tag['value']
-                        print(f'Period: {numPeriod}')
-                        day = numPeriod.split('-')
-                        print(f'Days: {day}')
-
-                for tag in tags:
-                    # Add task in array to stop
-                    if tag['key'] == 'ScheduleStop-' + str(period[j]):
-                        if len(day) > 1:
-                            # Check if the current day is within the period
-                            try:
-                                if DAYS.index(current_day, DAYS.index(day[0]), DAYS.index(day[1]) + 1):
-                                    print(f'{current_day} is on Stop period-{period[j]}')
-                                    
-                                    if tag['value'] == current_time_local:
-                                        print(f'{task_definition} is on the time')
-                                        stop_tasks.append(task)
-                                        
-                            except ValueError:
-                                print(f'{current_day} is not on Stop period-{period[j]}')
-                        else:
-                            if current_day == day[0]:
-                                if tag['value'] == current_time_local:
-                                    print(f'{task_definition} is on the time')
-                                    stop_tasks.append(task)
-            
-                for tag in tags:
-                    # Add task in array to start
-                    if tag['key'] == 'ScheduleStart-' + str(period[j]):
-                        if len(day) > 1:
-                            # Check if the current day is within the period
-                            try:
-                                if DAYS.index(current_day, DAYS.index(day[0]), DAYS.index(day[1]) + 1):
-                                    print(f'{current_day} is on Start period-{period[j]}')
-                                    
-                                    if tag['value'] == current_time_local:
-                                        print(f'{task_definition} is on the time')
-                                        start_tasks.append(task)
-                                            
-                            except ValueError:
-                                print(f'{current_day} is not on Start period-{period[j]}')
-                        else:
-                            if current_day == day[0]:
-                                if tag['value'] == current_time_local:
-                                    print(f'{task_definition} is on the time')
-                                    start_tasks.append(task)
-            
-                j = j+1
-            
-    # Stop all tasks tagged to stop.
-    if len(stop_tasks) > 0:
-        for stop_task in stop_tasks:
-            response = ecs.stop_task(cluster=cluster, task=stop_task)
-            print(f'Stopping task: {stop_task}')
-    else:
-        print("No tasks to stop.")
+        services[cluster] = []
         
-    # Start tasks tagged to start. 
-    if len(start_tasks) > 0:
-        for start_task in start_tasks:
-            response = ecs.start_task(cluster=cluster, task=start_task)
-            print(f'Starting task: {start_task}')
-    else:
-        print("No tasks to start.")
+        # Para cada serviço, verifique se tem as tags desejadas
+        for service_arn in service_arns:
+            response = ecs_client.describe_services(
+                cluster=cluster,
+                services=[service_arn]
+            )
+            
+            service = response['services'][0]
+            
+            # Verifique se o serviço tem todas as tags especificadas
+            if all(tag in service['tags'] for tag in tags):
+                services[cluster].append(service['serviceName'])
+    
+    return clusters, services
+
+def is_schedule_matched(event, current_time):
+    # Verifique se o dia atual está presente nas tags de dias
+    if 'days' in event:
+        current_day = datetime.today().strftime('%A').lower()
+        if current_day not in event['days']:
+            return False
+    
+    # Verifique se o horário atual está dentro do intervalo de tempo
+    if 'start_time' in event and 'end_time' in event:
+        start_time = datetime.strptime(event['start_time'], '%H:%M').time()
+        end_time = datetime.strptime(event['end_time'], '%H:%M').time()
+        return start_time <= current_time <= end_time
+    
+    return True

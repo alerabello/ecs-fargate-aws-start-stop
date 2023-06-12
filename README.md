@@ -1,51 +1,47 @@
-## AWS ECS Task Scheduler
+### Função Lambda para iniciar/parar tarefas em diversos clusters Fargate AWS
 
-- Este é um script em Python que permite agendar a inicialização e paralisação de tarefas (tasks) do Amazon Elastic Container Service (ECS) com base em tags configuradas. Ele utiliza a biblioteca Boto3 para interagir com a API do ECS.
+Este é um exemplo de uma função Lambda que utiliza o AWS SDK para iniciar ou parar tarefas em diversos clusters Fargate da AWS, com agendamento externo usando tags nos serviços do cluster.
 
-- Pré-requisitos
-   - Certifique-se de ter o Python instalado em sua máquina.
-   - Configure as credenciais de acesso da AWS localmente usando o AWS CLI ou definindo as variáveis de ambiente AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY.
-1. Configuração
-   - Instale a biblioteca Boto3 executando o seguinte comando:
-      - pip install boto3
-2. Faça o download do arquivo ecs_task_scheduler.py e salve-o em seu diretório de trabalho.
+#### Pré-requisitos
+- Uma conta na AWS com permissões para criar e executar funções Lambda, além de acessar o serviço ECS e CloudWatch Events.
+- Python 3.7 ou superior instalado em seu ambiente de desenvolvimento.
+- A biblioteca boto3 instalada. Você pode instalá-la usando o comando `pip install boto3`.
 
-3. Abra o arquivo ecs_task_scheduler.py em um editor de texto.
+#### Configuração
+1. Faça o login na AWS Management Console.
+2. Crie uma nova função Lambda e atribua a ela as permissões necessárias para acessar o serviço ECS e CloudWatch Events.
+3. Copie e cole o código fornecido na função Lambda.
+4. Salve e implante a função Lambda.
 
-4. No código, substitua 'your_cluster_arn' pela ARN (Amazon Resource Name) do cluster ECS que contém as tarefas que você deseja agendar.
+#### Agendamento
+Você pode usar um agendador externo, como o CloudWatch Events, para invocar a função Lambda nos horários e dias desejados. Neste exemplo, a função Lambda só será executada nos dias úteis das 08:00 às 20:00 para iniciar as tarefas, e nos fins de semana das 10:00 às 18:00 para parar as tarefas.
 
-5. Personalize as listas DAYS e current_time_local conforme necessário para definir a programação dos dias da semana e o fuso horário local.
+#### Uso
+1. Certifique-se de que seus clusters Fargate e serviços possuem as tags corretas para identificação.
+2. Crie eventos no CloudWatch Events para iniciar ou parar as tarefas nos horários e dias desejados, passando as chamadas como tags nos serviços do cluster. Por exemplo:
 
-6. Configure as tags nas definições das tarefas do ECS para definir os períodos de paralisação e início. Por exemplo:
-   - Para paralisação: ScheduleStop-<period_number>, onde <period_number> é o número do período.
-   - Para início: ScheduleStart-<period_number>, onde <period_number> é o número do período.
-   - Para definir o período: Period-<period_number>, onde <period_number> é o número do período. 
-   - O valor do período deve ser especificado como <start_time>-<end_time>, por exemplo, 08:00-17:00..
-````
--Exemplo: 
-      Scheduled       : Active
+##### Exemplo de evento para iniciar as tarefas nos dias úteis das 08:00 às 20:00
 
-      Period-1        : Monday-Friday
-      ScheduleStart-1 : 06:00
-      ScheduleStop-1  : 18:00
+```json
+{
+  "action": "start",
+  "start_tags": ["chamada-iniciar"],
+  "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+  "start_time": "08:00",
+  "end_time": "20:00"
+}
+{
+  "action": "stop",
+  "stop_tags": ["chamada-parar"],
+  "days": ["saturday", "sunday"],
+  "start_time": "10:00",
+  "end_time": "18:00"
+}
+```
+Certifique-se de substituir 'chamada-iniciar' e 'chamada-parar' pelas tags reais que você deseja usar para identificar os serviços que devem ser iniciados ou parados.
 
-      Period-2        : Saturday
-      ScheduleStart-2 : 09:00
+1. A função Lambda verificará os clusters e serviços do ECS e iniciará ou parará as tarefas nos serviços que possuem as tags especificadas, apenas durante os horários e dias úteis definidos.
+Considerações finais
+2. Este exemplo fornece uma base para criar uma função Lambda que inicia ou para tarefas em diversos clusters Fargate da AWS, usando o AWS SDK e agendamento externo com tags nos serviços do cluster. Certifique-se de ajustar o código de acordo com suas necessidades específicas, como lidar com erros, configurar logs e adicionar segurança adicional.
 
-      Period-3        : Sunday
-       ScheduleStop-3  : 02:00
-````
-# Uso
-1. Execute o script Python executando o seguinte comando:
-      - python ecs_task_scheduler.py
-2. O script verificará as tarefas no cluster ECS e executará ações com base nas tags configuradas. As tarefas que correspondem aos períodos de paralisação serão paralisadas, e as tarefas que correspondem aos períodos de início serão iniciadas.
-3. Verifique o terminal para obter informações sobre as ações executadas.
-
-# Limitações
-1. O script considera apenas tarefas individuais no cluster ECS. Tarefas em serviços, tarefas em execução por serviços do ECS ou tarefas em execução em instâncias EC2 não são suportadas.
-2. Certifique-se de que o script esteja em execução continuamente ou agendado para ser executado nos horários desejados.
-
-#Considerações Finais
-Este script fornece uma maneira simples de agendar a inicialização e paralisação de tarefas no ECS com base em tags configuradas. Certifique-se de revisar e personalizar o código de acordo com suas necessidades específicas antes de executá-lo em um ambiente de produção.
-
-Lembre-se de que a responsabilidade por agendar e gerenciar as tarefas do ECS recai sobre o usuário, e este script é apenas uma ferramenta para auxiliar nesse processo.
+Para mais informações sobre como trabalhar com a AWS Lambda, consulte a [documentação oficial da AWS](https://docs.aws.amazon
