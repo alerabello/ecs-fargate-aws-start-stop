@@ -17,25 +17,27 @@ Este é um exemplo de uma função Lambda que utiliza o AWS SDK para iniciar ou 
 Você pode usar um agendador externo, como o CloudWatch Events, para invocar a função Lambda nos horários e dias desejados. Neste exemplo, a função Lambda só será executada nos dias úteis das 08:00 às 20:00 para iniciar as tarefas, e nos fins de semana das 10:00 às 18:00 para parar as tarefas.
 
 #### Uso
-1. Certifique-se de que seus clusters Fargate e serviços possuem as tags corretas para identificação.
-2. Crie eventos no CloudWatch Events para iniciar ou parar as tarefas nos horários e dias desejados, passando as chamadas como tags nos serviços do cluster. Por exemplo:
+1. Certifique-se de ter o Python instalado em sua máquina..
+2. Instale a biblioteca boto3 executando o seguinte comando em seu terminal: pip install boto3
+3. Copie o código da função para um arquivo com extensão .py, por exemplo, ecs_service_scheduler.py.
+4. Configure suas credenciais de acesso à AWS usando o AWS CLI executando o seguinte comando em seu terminal
+5. Abra o arquivo ecs_service_scheduler.py em um editor de texto e atualize 'your_cluster_name' e 'your_service_name' com os valores corretos.
+6. Adicione as tags de programação do serviço ECS desejado na variável schedule_tags, conforme mostrado no exemplo.
+7. Execute o arquivo Python em seu terminal usando o seguinte comando: python ecs_service_scheduler.py
 
 ##### Exemplo de evento para iniciar as tarefas nos dias úteis das 08:00 às 20:00
 
 ```json
-{
-  "action": "start",
-  "start_tags": ["chamada-iniciar"],
-  "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
-  "start_time": "08:00",
-  "end_time": "20:00"
-}
-{
-  "action": "stop",
-  "stop_tags": ["chamada-parar"],
-  "days": ["saturday", "sunday"],
-  "start_time": "10:00",
-  "end_time": "18:00"
+# Exemplo de uso
+schedule_tags = {
+    'Scheduled': 'Active',
+    'Period-1': 'Monday-Friday',
+    'ScheduleStart-1': '06:00',
+    'ScheduleStop-1': '18:00',
+    'Period-2': 'Saturday',
+    'ScheduleStart-2': '09:00',
+    'Period-3': 'Sunday',
+    'ScheduleStop-3': '02:00'
 }
 ```
 Certifique-se de substituir 'chamada-iniciar' e 'chamada-parar' pelas tags reais que você deseja usar para identificar os serviços que devem ser iniciados ou parados.
