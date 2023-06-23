@@ -1,6 +1,6 @@
 import boto3
-import datetime
-import pytz
+import time
+from datetime import datetime, timedelta
 
 def update_ecs_service_schedule(service_name, schedule_tags):
     ecs_client = boto3.client('ecs')
