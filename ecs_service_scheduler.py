@@ -23,8 +23,8 @@ def lambda_handler(event, context):
     schedule = { 
         'Period-1': {
             'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-            'start': '06:00',
-            'stop': '18:00'
+            'start': '08:00',
+            'stop': '20:00'
         },
         'Period-2': { 
             'days': ['Saturday'],
