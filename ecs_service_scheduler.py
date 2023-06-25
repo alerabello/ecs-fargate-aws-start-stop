@@ -1,76 +1,52 @@
 import boto3
-import time
 from datetime import datetime, timedelta
 
-def update_ecs_service_schedule(service_name, schedule_tags):
+def update_ecs_services(cluster_name, services, desired_count):
     ecs_client = boto3.client('ecs')
 
-    # Obter a lista de serviços ECS com base no nome do serviço
-    response = ecs_client.list_services(
-        cluster='your_cluster_name',
-        launchType='FARGATE',
-        serviceName=service_name
-    )
+    for service in services:
+        response = ecs_client.update_service(
+            cluster=cluster_name,
+            service=service,
+            desiredCount=desired_count
+        )
+        print(f"Updated service '{service}': {response}")
 
-    # Verificar se o serviço existe
-    if 'serviceArns' not in response or len(response['serviceArns']) == 0:
-        print(f"O serviço '{service_name}' não foi encontrado.")
-        return
+def lambda_handler(event, context):
+    cluster_name = 'nome-do-cluster'  # Substitua pelo nome do seu cluster ECS
+    services = ['service1', 'service2', 'service3', 'service4']  # Substitua pelos nomes dos seus serviços ECS
+    
+    current_day = datetime.now().strftime('%A')
+    current_time = datetime.now().strftime('%H:%M')
 
-    service_arn = response['serviceArns'][0]
+    # Mapeamento dos períodos e horários de início/parada
+    schedule = { 
+        'Period-1': {
+            'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+            'start': '06:00',
+            'stop': '18:00'
+        },
+        'Period-2': { 
+            'days': ['Saturday'],
+            'start': '18:30',
+            'stop': '18:35'
+        },
+        'Period-3': {
+            'days': ['Sunday'],
+            'start': '18:30',
+            'stop': '18:35'
+        }
+    }
+    
+    desired_count = 0  # Valor padrão para parar o serviço
 
-    # Obter o estado atual do serviço
-    describe_response = ecs_client.describe_services(
-        cluster='your_cluster_name',
-        services=[service_arn]
-    )
-
-    if 'services' not in describe_response or len(describe_response['services']) == 0:
-        print(f"O serviço '{service_name}' não foi encontrado.")
-        return
-
-    service = describe_response['services'][0]
-
-    # Obter a data e hora atual
-    current_time = datetime.datetime.now(pytz.utc)
-
-    # Verificar os horários de início/parada programados com base nas tags
-    for tag_key, tag_value in schedule_tags.items():
-        if tag_key.lower().startswith('period-') and tag_value.lower() == 'active':
-            period_number = tag_key.lower().replace('period-', '')
-            schedule_start_key = f"ScheduleStart-{period_number}"
-            schedule_stop_key = f"ScheduleStop-{period_number}"
-
-            if schedule_start_key in schedule_tags and schedule_stop_key in schedule_tags:
-                schedule_start = datetime.datetime.strptime(schedule_tags[schedule_start_key], '%H:%M').time()
-                schedule_stop = datetime.datetime.strptime(schedule_tags[schedule_stop_key], '%H:%M').time()
-
-                if schedule_start <= current_time.time() <= schedule_stop:
-                    # Atualizar o número de tarefas desejado para 1 para iniciar o serviço
-                    ecs_client.update_service(
-                        cluster='your_cluster_name',
-                        service=service_arn,
-                        desiredCount=1
-                    )
-                else:
-                    # Atualizar o número de tarefas desejado para 0 para parar o serviço
-                    ecs_client.update_service(
-                        cluster='your_cluster_name',
-                        service=service_arn,
-                        desiredCount=0
-                    )
-
-# Exemplo de uso
-schedule_tags = {
-    'Scheduled': 'Active',
-    'Period-1': 'Monday-Friday',
-    'ScheduleStart-1': '06:00',
-    'ScheduleStop-1': '18:00',
-    'Period-2': 'Saturday',
-    'ScheduleStart-2': '09:00',
-    'Period-3': 'Sunday',
-    'ScheduleStop-3': '02:00'
-}
-
-service_name = 'your_service_name'
-update_ecs_service_schedule(service_name, schedule_tags)
+    # Verifica os períodos e horários de início/parada
+    for period, data in schedule.items():
+        if current_day in data['days']:
+            if data['start'] and current_time >= data['start']:
+                desired_count = 1
+            elif data['stop'] and current_time <= data['stop']:
+                desired_count = 0
+    
+    # Atualiza os serviços do ECS com a contagem desejada
+    update_ecs_services(cluster_name, services, desired_count)
